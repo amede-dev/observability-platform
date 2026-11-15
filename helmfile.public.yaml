@@ -1,0 +1,50 @@
+# Déploiement en ligne (k3s sur un serveur) : même stack + cert-manager + accès visiteur.
+# Usage : helmfile -f helmfile.public.yaml sync   (ou ./scripts/deploy-public.sh)
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: fluent
+    url: https://fluent.github.io/helm-charts
+  - name: jetstack
+    url: https://charts.jetstack.io
+
+# Figer les versions avant la mise en ligne : helm search repo <chart> --versions
+releases:
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    # version: "x.y.z"
+    set:
+      - name: crds.enabled
+        value: "true"
+
+  - name: kube-prometheus-stack
+    namespace: observability
+    chart: prometheus-community/kube-prometheus-stack
+    # version: "x.y.z"
+    needs:
+      - cert-manager/cert-manager
+    values:
+      - helm/kube-prometheus-stack/values.yaml
+      - helm/kube-prometheus-stack/values-public.yaml
+
+  - name: loki
+    namespace: observability
+    chart: grafana/loki
+    # version: "x.y.z"
+    needs:
+      - observability/kube-prometheus-stack
+    values:
+      - helm/loki/values.yaml
+
+  - name: fluentd
+    namespace: observability
+    chart: fluent/fluentd
+    # version: "x.y.z"
+    needs:
+      - observability/loki
+    values:
+      - helm/fluentd/values.yaml
+      - helm/fluentd/values-public.yaml

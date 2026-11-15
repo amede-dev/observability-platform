@@ -1,0 +1,19 @@
+# Application racine (app of apps) : à appliquer une fois avec kubectl apply -f.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/amede-dev/observability-platform.git   # à remplacer
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

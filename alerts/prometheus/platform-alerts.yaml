@@ -1,0 +1,60 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform-alerts
+  namespace: observability
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: platform.alerts
+      rules:
+        - alert: TargetDown
+          expr: up == 0
+          for: 2m
+          labels: { severity: critical }
+          annotations:
+            summary: "Cible {{ $labels.job }} injoignable ({{ $labels.instance }})"
+            runbook_url: "https://git.example.com/docs/runbooks/target-down.md"
+        - alert: PodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+          for: 5m
+          labels: { severity: critical }
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} redémarre en boucle"
+            runbook_url: "https://git.example.com/docs/runbooks/pod-crashlooping.md"
+        - alert: DeploymentReplicasMismatch
+          expr: kube_deployment_status_replicas_available < kube_deployment_spec_replicas
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "Déploiement {{ $labels.namespace }}/{{ $labels.deployment }} incomplet"
+        - alert: NodeCPUHigh
+          expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) > 0.85
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "CPU supérieur à 85 % sur {{ $labels.instance }}"
+        - alert: NodeMemoryHigh
+          expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+          for: 5m
+          labels: { severity: warning }
+          annotations:
+            summary: "Mémoire disponible inférieure à 10 % sur {{ $labels.instance }}"
+        - alert: DiskSpaceLow
+          expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} < 0.15
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "Disque presque plein sur {{ $labels.instance }} ({{ $labels.mountpoint }})"
+        - alert: FluentdBufferGrowing
+          expr: deriv(fluentd_output_status_buffer_queue_length[10m]) > 0 and fluentd_output_status_buffer_queue_length > 5
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "Le buffer Fluentd grossit sur {{ $labels.pod }} : Loki est-il joignable ?"
+        - alert: Watchdog
+          expr: vector(1)
+          labels: { severity: info }
+          annotations:
+            summary: "Alerte permanente : vérifie que la chaîne d'alerte fonctionne"

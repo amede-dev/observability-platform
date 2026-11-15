@@ -1,0 +1,10 @@
+apiVersion: 1
+datasources:
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki-gateway.observability.svc:80
+    editable: false
+    jsonData:
+      maxLines: 1000

@@ -1,0 +1,6 @@
+alerts/prometheus/rules-extracted/
+alerts/rules-extracted/
+.terraform/
+*.tfstate*
+*.tfvars
+.env

@@ -1,0 +1,35 @@
+# Fluentd en DaemonSet avec les plugins Kubernetes et Loki.
+# L'image officielle ne contient pas fluent-plugin-grafana-loki ni kubernetes_metadata :
+# construire l'image à partir de fluentd/Dockerfile puis renseigner image.repository / tag.
+kind: DaemonSet
+
+image:
+  repository: ghcr.io/amede-dev/fluentd-loki     # à remplacer
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests: { cpu: 100m, memory: 200Mi }
+  limits: { memory: 500Mi }
+
+# Utilise le ConfigMap généré par fluentd/kustomization.yaml pour la
+# configuration principale. La chart monte déjà cette configuration et
+# /var/log ; ne pas redéclarer ces volumes ici.
+mainConfigMapNameOverride: fluentd-main
+fileConfigs: {}
+configMapConfigs: []
+
+volumes:
+  - name: buffer
+    hostPath:
+      path: /var/log/fluentd-buffers
+      type: DirectoryOrCreate
+
+volumeMounts:
+  - { name: buffer, mountPath: /var/log/fluentd-buffers }
+
+metrics:
+  serviceMonitor:
+    enabled: true
+
+# Le ConfigMap fluentd-main est généré depuis fluentd/fluent.conf (voir Makefile : make fluentd-config)

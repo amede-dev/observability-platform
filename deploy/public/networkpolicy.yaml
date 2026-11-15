@@ -1,0 +1,15 @@
+# Les visiteurs ne doivent atteindre que Grafana ; Prometheus, Alertmanager et Loki
+# restent internes au namespace (aucun Ingress n'est créé pour eux, cette règle est une défense en plus).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-internal-only
+  namespace: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: loki
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}

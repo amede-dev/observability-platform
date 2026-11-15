@@ -1,0 +1,12 @@
+# Surcharge du déploiement local Kind.
+# L'image est construite et chargée dans Kind par `make deploy`.
+image:
+  repository: fluentd-loki
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+# En Kind, le buffer est un HostPath sous /var/log. Le conteneur doit pouvoir
+# créer /var/log/fluentd-buffers/loki et lire les logs des nœuds.
+securityContext:
+  runAsUser: 0
+  runAsGroup: 0

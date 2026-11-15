@@ -1,0 +1,64 @@
+# Loki en mode monolithique (SingleBinary) pour la démonstration.
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  schemaConfig:
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  storage:
+    type: filesystem
+  limits_config:
+    retention_period: 168h        # 7 jours (BNF-07)
+    ingestion_rate_mb: 8
+    ingestion_burst_size_mb: 16
+    max_streams_per_user: 10000
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
+  ruler:
+    enable_api: true
+    storage:
+      type: local
+      local:
+        directory: /rules
+    rule_path: /tmp/loki/rules-temp
+    alertmanager_url: http://kps-alertmanager.observability.svc:9093
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+# Règles d'alerte sur logs, montées dans /rules/fake (tenant par défaut sans auth)
+sidecar:
+  rules:
+    enabled: true
+    label: loki_rule
+    labelValue: "1"
+    searchNamespace: ALL
+
+# Désactive les composants du mode distribué
+backend: { replicas: 0 }
+read: { replicas: 0 }
+write: { replicas: 0 }
+chunksCache: { enabled: false }
+resultsCache: { enabled: false }
+lokiCanary: { enabled: false }
+test: { enabled: false }
+
+gateway:
+  enabled: true
+  replicas: 1

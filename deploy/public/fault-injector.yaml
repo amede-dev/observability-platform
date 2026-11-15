@@ -1,0 +1,34 @@
+# Simule périodiquement un pic d'erreurs 5xx pour que la démo publique reste vivante :
+# toutes les 2 heures, 7 minutes d'erreurs (assez pour déclencher HighHTTPErrorRate, qui exige 5 min).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fault-injector
+  namespace: demo
+spec:
+  schedule: "0 */2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: inject
+              image: curlimages/curl:8.10.1
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  end=$(( $(date +%s) + 420 ))
+                  while [ "$(date +%s)" -lt "$end" ]; do
+                    curl -s -o /dev/null http://demo-app.demo.svc:8080/error || true
+                    sleep 0.2
+                  done
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 32Mi }

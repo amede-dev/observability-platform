@@ -1,0 +1,30 @@
+name: fluentd-image
+
+# Construit et publie l'image Fluentd (plugins Loki / Kubernetes) sur GitHub Container Registry.
+on:
+  push:
+    branches: [main]
+    paths: ["fluentd/Dockerfile"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: fluentd
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_amede-dev }}/fluentd-loki:1.0.0
+            ghcr.io/${{ github.repository_amede-dev }}/fluentd-loki:latest

@@ -1,0 +1,10 @@
+# Surcharge k3s/public : l'image est publiée sur GHCR et Fluentd doit lire
+# les logs du nœud ainsi qu'écrire son buffer HostPath.
+image:
+  repository: ghcr.io/amede-dev/fluentd-loki
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+securityContext:
+  runAsUser: 0
+  runAsGroup: 0

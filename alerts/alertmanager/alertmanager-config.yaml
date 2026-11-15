@@ -1,0 +1,44 @@
+# Routage Alertmanager. Les webhooks Slack proviennent d'un secret (jamais en clair dans Git).
+# Créer le secret : kubectl -n observability create secret generic alertmanager-slack \
+#   --from-literal=slack-webhook=<URL>   (ou le chiffrer avec SOPS / Sealed Secrets)
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: platform-routing
+  namespace: observability
+  labels:
+    alertmanagerConfig: platform
+spec:
+  route:
+    receiver: slack-team
+    groupBy: [alertname, namespace]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    routes:
+      - matchers:
+          - { name: severity, value: critical }
+        receiver: oncall
+        groupWait: 10s
+        repeatInterval: 1h
+      - matchers:
+          - { name: alertname, value: Watchdog }
+        receiver: "null"
+  inhibitRules:
+    - sourceMatch:
+        - { name: severity, value: critical }
+      targetMatch:
+        - { name: severity, value: warning }
+      equal: [alertname, namespace]
+  receivers:
+    - name: oncall
+      slackConfigs:
+        - channel: "#alerts-critical"
+          sendResolved: true
+          apiURL: { name: alertmanager-slack, key: slack-webhook }
+    - name: slack-team
+      slackConfigs:
+        - channel: "#alerts-team"
+          sendResolved: true
+          apiURL: { name: alertmanager-slack, key: slack-webhook }
+    - name: "null"

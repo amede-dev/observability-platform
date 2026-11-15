@@ -1,0 +1,49 @@
+# Surcouche « démo publique » : accès visiteur en lecture seule, HTTPS, ressources réduites.
+# Remplacer demo.example.com par votre nom de domaine (enregistrement DNS A vers le serveur).
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    retentionSize: 8GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 10Gi
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+
+grafana:
+  # Mot de passe admin fourni par un secret créé hors Git (voir docs/DEPLOY.md)
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  adminPassword: null
+  grafana.ini:
+    server:
+      domain: demo.example.com
+      root_url: https://demo.example.com
+    auth.anonymous:
+      enabled: true
+      org_name: Main Org.
+      org_role: Viewer
+    users:
+      allow_sign_up: false
+      viewers_can_edit: false
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+  ingress:
+    enabled: true
+    ingressClassName: traefik          # Ingress fourni par défaut par k3s
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+    hosts:
+      - demo.example.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - demo.example.com

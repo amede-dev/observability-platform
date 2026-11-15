@@ -1,0 +1,62 @@
+# Valeurs de démonstration (kind / k3d). Pour la production : 2 réplicas, TLS, SSO.
+fullnameOverride: kps
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    retention: 15d
+    retentionSize: 16GB
+    # Sélectionne tous les ServiceMonitor / PodMonitor / PrometheusRule
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { memory: 1Gi }
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 2
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+  # Routage complet : voir alerts/alertmanager/alertmanager-config.yaml
+  config:
+    route:
+      receiver: "null"
+    receivers:
+      - name: "null"
+
+grafana:
+  adminPassword: change-me   # À remplacer par un secret (SOPS / Sealed Secrets)
+  defaultDashboardsEnabled: true
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+        allowUiUpdates: false
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      searchNamespace: ALL
+  # La datasource Prometheus est fournie par la chart ; Loki par grafana/datasources
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+
+nodeExporter:
+  enabled: true
+kubeStateMetrics:
+  enabled: true

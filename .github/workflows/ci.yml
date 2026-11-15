@@ -1,0 +1,98 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: yamllint
+        run: |
+          pip install yamllint pyyaml
+          yamllint -d "{extends: relaxed, rules: {line-length: disable}}" \
+            helm alerts argocd apps fluentd grafana/datasources grafana/dashboards/kustomization.yaml helmfile.yaml
+
+      - name: Validation JSON des dashboards
+        run: for f in grafana/dashboards/*.json; do python3 -m json.tool "$f" > /dev/null && echo "ok $f"; done
+
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt et validate
+        working-directory: terraform
+        run: |
+          terraform fmt -check
+          terraform init -backend=false
+          terraform validate
+
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer promtool et amtool
+        run: |
+          VERSION=2.55.1
+          curl -sL https://github.com/prometheus/prometheus/releases/download/v${VERSION}/prometheus-${VERSION}.linux-amd64.tar.gz | tar xz
+          sudo mv prometheus-${VERSION}.linux-amd64/promtool /usr/local/bin/
+      - name: Extraire et tester les règles
+        run: |
+          pip install pyyaml
+          python3 scripts/extract-rules.py alerts/prometheus alerts/rules-extracted
+          promtool check rules alerts/rules-extracted/*.rules.yaml
+          promtool test rules alerts/tests/*_test.yaml
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer kubeconform
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      - name: Build kustomize et validation
+        run: |
+          for d in fluentd grafana/datasources grafana/dashboards alerts/loki apps/demo; do
+            kubectl kustomize "$d" | kubeconform -strict -ignore-missing-schemas -summary
+          done
+          kubeconform -strict -ignore-missing-schemas -summary alerts/prometheus alerts/alertmanager argocd
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: trivy config
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+
+  integration:
+    needs: [lint, rules, manifests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with: { cluster_name: observability }
+      - uses: helmfile/helmfile-action@v2
+        with:
+          helmfile-args: sync
+      - name: Déployer config, alertes et application de démonstration
+        run: |
+          kubectl create namespace demo --dry-run=client -o yaml | kubectl apply -f -
+          for d in fluentd grafana/datasources grafana/dashboards alerts/loki apps/demo; do kubectl apply -k "$d"; done
+          kubectl apply -f alerts/prometheus -f alerts/alertmanager
+      - name: Test de fumée
+        run: |
+          kubectl -n demo rollout status deploy/demo-app --timeout=180s
+          sleep 60
+          ./scripts/smoke-test.sh

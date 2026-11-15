@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: demo
+  labels: { app: demo-app }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: demo-app }
+  template:
+    metadata:
+      labels: { app: demo-app }
+    spec:
+      containers:
+        - name: demo-app
+          image: python:3.12-slim
+          command: ["python", "-u", "/app/app.py"]
+          env:
+            - { name: ERROR_RATE, value: "0.02" }
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 128Mi }
+          volumeMounts:
+            - { name: code, mountPath: /app }
+      volumes:
+        - name: code
+          configMap:
+            name: demo-app-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app
+  namespace: demo
+  labels: { app: demo-app }
+spec:
+  selector: { app: demo-app }
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: demo-app
+  namespace: demo
+  labels:
+    release: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels: { app: demo-app }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+  # Les labels namespace / pod / app sont ajoutés par Prometheus (cohérents avec Loki)
+  targetLabels: [app]
+  podTargetLabels: [app]

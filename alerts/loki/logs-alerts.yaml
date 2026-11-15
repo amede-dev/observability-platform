@@ -1,0 +1,23 @@
+groups:
+  - name: logs.alerts
+    rules:
+      - alert: HighErrorLogRate
+        expr: |
+          sum by (namespace, app) (
+            count_over_time({namespace="demo"} | json | level=~"error|ERROR" [1m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux de logs en erreur élevé sur {{ $labels.app }}"
+      - alert: PanicOrFatalInLogs
+        expr: |
+          sum by (namespace, app) (
+            count_over_time({namespace="demo"} |~ "(?i)(panic|fatal)" [1m])
+          ) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "panic ou fatal détecté dans les logs de {{ $labels.app }}"

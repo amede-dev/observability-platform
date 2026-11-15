@@ -1,0 +1,19 @@
+# Kind ne rend pas les endpoints sécurisés des composants control-plane
+# accessibles depuis les pods. Désactiver uniquement ces ServiceMonitors
+# locaux évite de faux targets DOWN ; ils restent activés dans la configuration
+# publique/production.
+kubeControllerManager:
+  serviceMonitor:
+    enabled: false
+
+kubeScheduler:
+  serviceMonitor:
+    enabled: false
+
+kubeProxy:
+  serviceMonitor:
+    enabled: false
+
+kubeEtcd:
+  serviceMonitor:
+    enabled: false
