@@ -1,5 +1,5 @@
 # Surcouche « démo publique » : accès visiteur en lecture seule, HTTPS, ressources réduites.
-# Remplacer demo.example.com par votre nom de domaine (enregistrement DNS A vers le serveur).
+# Remplacer  par votre nom de domaine (enregistrement DNS A vers le serveur).
 prometheus:
   prometheusSpec:
     retention: 7d
@@ -24,8 +24,8 @@ grafana:
   adminPassword: null
   grafana.ini:
     server:
-      domain: demo.example.com
-      root_url: https://demo.example.com
+      domain: demo.votre-domaine.com
+      root_url: https://demo.votre-domaine.com
     auth.anonymous:
       enabled: true
       org_name: Main Org.
@@ -42,8 +42,8 @@ grafana:
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt
     hosts:
-      - demo.example.com
+      - demo.votre-domaine.com
     tls:
       - secretName: grafana-tls
         hosts:
-          - demo.example.com
+          - demo.votre-domaine.com
