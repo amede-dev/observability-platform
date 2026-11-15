@@ -83,6 +83,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: helm/kind-action@v1
         with: { cluster_name: observability }
+      - name: Construire l'image Fluentd locale
+        run: docker build -t fluentd-loki:1.0.0 fluentd
+      - name: Charger l'image Fluentd dans Kind
+        run: kind load docker-image fluentd-loki:1.0.0 --name observability
       - uses: helmfile/helmfile-action@v2
         with:
           helmfile-args: sync
