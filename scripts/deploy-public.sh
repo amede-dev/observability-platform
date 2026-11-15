@@ -5,9 +5,9 @@ set -euo pipefail
 export KUBECONFIG=${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}
 cd "$(dirname "$0")/.."
 
-if grep -rqE "demo\.example\.com|you@example\.com|/amede-dev/" helm deploy argocd 2>/dev/null; then
-  echo "ERREUR : des valeurs d'exemple restent à remplacer (demo.example.com, you@example.com, amede-dev)."
-  grep -rnE "demo\.example\.com|you@example\.com|/amede-dev/" helm deploy argocd | head
+if grep -rqE "demo\.example\.com|you@example\.com|ghcr\.io/OWNER|github\.com/OWNER" helm deploy argocd 2>/dev/null; then
+  echo "ERREUR : des valeurs d'exemple restent à remplacer (demo.example.com, you@example.com ou OWNER)."
+  grep -rnE "demo\.example\.com|you@example\.com|ghcr\.io/OWNER|github\.com/OWNER" helm deploy argocd | head
   exit 1
 fi
 
