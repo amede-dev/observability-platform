@@ -32,6 +32,7 @@ kubectl apply -f alerts/prometheus -f alerts/alertmanager
 kubectl apply -f deploy/public/networkpolicy.yaml -f deploy/public/fault-injector.yaml
 
 echo "→ Attente du déploiement Fluentd"
+kubectl -n observability rollout restart daemonset/fluentd
 kubectl -n observability rollout status daemonset/fluentd --timeout=180s
 kubectl -n demo rollout status deployment/demo-app --timeout=180s
 
