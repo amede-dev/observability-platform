@@ -1,4 +1,4 @@
-.PHONY: cluster deploy config argocd test smoke destroy deploy-public
+.PHONY: cluster deploy config argocd test smoke destroy deploy-public deploy-remote
 
 CLUSTER ?= observability
 FLUENTD_IMAGE ?= fluentd-loki:1.0.0
@@ -34,3 +34,6 @@ destroy:
 
 deploy-public:      ## Démo en ligne (sur le serveur k3s) : voir docs/DEPLOY.md
 	./scripts/deploy-public.sh
+
+deploy-remote:      ## Déploie sur k3s distant sans domaine ni TLS
+	./scripts/deploy-remote.sh

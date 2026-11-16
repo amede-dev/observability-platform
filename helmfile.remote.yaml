@@ -1,0 +1,34 @@
+# Déploiement distant sans domaine : k3s + Grafana en NodePort.
+# Usage : sudo ./scripts/deploy-remote.sh
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: fluent
+    url: https://fluent.github.io/helm-charts
+
+releases:
+  - name: kube-prometheus-stack
+    namespace: observability
+    chart: prometheus-community/kube-prometheus-stack
+    values:
+      - helm/kube-prometheus-stack/values.yaml
+      - helm/kube-prometheus-stack/values-remote.yaml
+
+  - name: loki
+    namespace: observability
+    chart: grafana/loki
+    needs:
+      - observability/kube-prometheus-stack
+    values:
+      - helm/loki/values.yaml
+
+  - name: fluentd
+    namespace: observability
+    chart: fluent/fluentd
+    needs:
+      - observability/loki
+    values:
+      - helm/fluentd/values.yaml
+      - helm/fluentd/values-public.yaml

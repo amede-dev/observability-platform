@@ -1,0 +1,40 @@
+# Profil distant sans nom de domaine ni certificat TLS.
+# Grafana est exposé par le NodePort 30080 du serveur k3s.
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    retentionSize: 8GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 10Gi
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+
+grafana:
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  adminPassword: null
+  grafana.ini:
+    auth.anonymous:
+      enabled: true
+      org_name: Main Org.
+      org_role: Viewer
+    users:
+      allow_sign_up: false
+      viewers_can_edit: false
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+  ingress:
+    enabled: false
+  service:
+    type: NodePort
+    nodePort: 30080
